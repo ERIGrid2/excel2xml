@@ -1,26 +1,58 @@
 #!/bin/sh
 
+set -o errexit
+
 if [ -z "$1" ]
 then
-  OUTPUT_DIR="/github/workspace/grupoetra"
+  OUTPUT_DIR="/github/workspace/erigrid2-test-cases"
 else
   OUTPUT_DIR="$1"
 fi
 
 mkdir -p ${OUTPUT_DIR}
 
-INPUT_DIR="/excel2xml/excel2xml-input/excel-use-cases"
+RUN_EXCEL2MD=$(cat << EOM
+  FILE=\$0
+  OUTPUT_DIR="\$1"
+  PREFIX="\$2"
+  DIRNAMEPREFIX=\$(dirname "\${FILE}")
+  IS_TLD=\$(echo \${DIRNAMEPREFIX} | grep "/")
+  if [ \$? -eq 1 ]; then
+    DIRNAME=/
+  else
+    DIRNAME=/\${DIRNAMEPREFIX#\$PREFIX}
+  fi
+  mkdir -p "\${OUTPUT_DIR}/\${DIRNAME}/"
+  OUTPUT_FILE_NAME="\${OUTPUT_DIR}\${DIRNAME}/index.md"
+  echo "Creating markdown file: \$OUTPUT_FILE_NAME"
+  python3 xlsx2md.py "\$FILE" > "\${OUTPUT_FILE_NAME}"
+  IMAGES=\$(find "\${DIRNAMEPREFIX}" -iname *.png)
+  for IMAGE in \$IMAGES
+  do
+    echo Copying image file "\$IMAGE" into "\${OUTPUT_DIR}/\${DIRNAME}"
+    cp "\$IMAGE" "\${OUTPUT_DIR}/\${DIRNAME}"
+  done
+EOM
+)
 
-find $INPUT_DIR -type f -name '*.xlsx' -exec sh -c '
-  FILE="$0"
-  OUTPUT_DIR="$1"
-  INPUT_DIR="$2"
-  BASENAME=$(basename "$FILE" .xlsx | tr '[:blank:]' '_')
-  NO_PREFIX="${FILE##$INPUT_DIR}"
-  BASEPATH=$(dirname "$NO_PREFIX")
-  DIRNAME=$(echo "${BASEPATH}" | tr '[:blank:]' '_')
-  mkdir -p ${OUTPUT_DIR}/${DIRNAME}
-  OUTPUT_FILE_NAME="${OUTPUT_DIR}${DIRNAME}/${BASENAME}.xml"
-  echo "$OUTPUT_FILE_NAME"
-  python3 /excel2xml/xlsx2xml.py "$FILE" > "$OUTPUT_FILE_NAME"
-' {} ${OUTPUT_DIR} ${INPUT_DIR} ';'
+# process all *.xlsx files from grupoetra and create index.md
+find excel-input/* -type f -name '*.xlsx' -exec sh -c "$RUN_EXCEL2MD" {} ${OUTPUT_DIR} "excel-input/" ';'
+
+find "${OUTPUT_DIR}" -type d -exec sh -c '
+  DIRPATH=$0
+  DIRNAME=$(basename "$DIRPATH")
+  if [ ! -f "${DIRPATH}/index.md" ]
+  then
+    if [ ! -f "${DIRPATH}/_index.md" ]
+    then
+      echo Creating title link for directory: $DIRPATH with title: $DIRNAME
+      cat > "${DIRPATH}/_index.md" <<EOF
+---
+title: "$DIRNAME"
+linkTitle: "$DIRNAME"
+weight: 5
+---
+EOF
+    fi
+  fi
+' {} ${OUTPUT_DIR} ';'

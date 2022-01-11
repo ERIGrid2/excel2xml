@@ -1,0 +1,21 @@
+---
+title: {{title}}
+linkTitle: {{linkTitle}}
+date: {{date}}
+description: {{description}}
+---
+
+# Test Case {{ID}}: {{Name}}
+
+{{#subsections}}
+## {{section_title}}
+{{contents}}
+{{#diagrams}}
+![{{diagram_name}}]({{diagram_uri}})
+{{/diagrams}}
+{{#subsections}}
+### {{section_title}}
+{{contents}}
+{{/subsections}}
+{{/subsections}}
+
