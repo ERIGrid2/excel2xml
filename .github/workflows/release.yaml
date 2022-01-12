@@ -20,7 +20,7 @@ jobs:
       uses: ./
     - name: Create Archive
       id: create-archive
-      run: pushd erigrid2-test-cases && zip ../erigrid2-test-cases -r . && popd
+      run: zip -r erigrid2-test-cases erigrid2-test-cases
     - name: Create Release
       id: create-release
       uses: actions/create-release@v1
