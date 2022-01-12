@@ -130,10 +130,10 @@ def main(filename):
     if test_case:
         mtime = date.fromtimestamp(os.path.getmtime(filename)).isoformat()
         test_case_filename = os.path.splitext(os.path.basename(filename))[0]
-        test_case['title'] = '"' + test_case_filename + '"'
-        test_case['linkTitle'] = '"' + test_case_filename + '"'
-        test_case['date'] = '"' + mtime + '"'
-        test_case['description'] = '"' + test_case['Name'] + '"'
+        test_case['title'] = test_case_filename
+        test_case['linkTitle'] = test_case_filename
+        test_case['date'] = mtime
+        test_case['description'] = test_case['Name']
         with open('TestCase.mustache', 'r') as template:
             md_test_case = chevron.render(template=template, data=test_case)
             print(md_test_case)
