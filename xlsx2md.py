@@ -191,7 +191,7 @@ def main(filename, output_dir):
                     break
 
             if parent_path:
-                with open('TestSpecification.mustache', 'r') as template:
+                with open('ExperimentSpecification.mustache', 'r') as template:
                     md_exp_spec = chevron.render(template=template, data=es)
                     output_files.append({
                         'path': os.path.join('.', parent_path, es['id'], 'index.md'), 
