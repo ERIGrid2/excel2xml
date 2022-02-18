@@ -11,6 +11,29 @@ fi
 
 mkdir -p ${OUTPUT_DIR}
 
+# RUN_EXCEL2MD=$(cat << EOM
+#   FILE=\$0
+#   OUTPUT_DIR="\$1"
+#   PREFIX="\$2"
+#   DIRNAMEPREFIX=\$(dirname "\${FILE}")
+#   IS_TLD=\$(echo \${DIRNAMEPREFIX} | grep "/")
+#   if [ \$? -eq 1 ]; then
+#     DIRNAME=/
+#   else
+#     DIRNAME=/\${DIRNAMEPREFIX#\$PREFIX}
+#   fi
+#   mkdir -p "\${OUTPUT_DIR}/\${DIRNAME}/"
+#   OUTPUT_FILE_NAME="\${OUTPUT_DIR}\${DIRNAME}/index.md"
+#   echo "Creating markdown files: \$OUTPUT_FILE_NAME"
+#   python3 xlsx2md.py "\$FILE" > "\${OUTPUT_FILE_NAME}"
+#   IMAGES=\$(find "\${DIRNAMEPREFIX}" -iname *.png)
+#   for IMAGE in \$IMAGES
+#   do
+#     echo Copying image file "\$IMAGE" into "\${OUTPUT_DIR}/\${DIRNAME}"
+#     cp "\$IMAGE" "\${OUTPUT_DIR}/\${DIRNAME}"
+#   done
+# EOM
+# )
 RUN_EXCEL2MD=$(cat << EOM
   FILE=\$0
   OUTPUT_DIR="\$1"
@@ -23,14 +46,13 @@ RUN_EXCEL2MD=$(cat << EOM
     DIRNAME=/\${DIRNAMEPREFIX#\$PREFIX}
   fi
   mkdir -p "\${OUTPUT_DIR}/\${DIRNAME}/"
-  OUTPUT_FILE_NAME="\${OUTPUT_DIR}\${DIRNAME}/index.md"
-  echo "Creating markdown file: \$OUTPUT_FILE_NAME"
-  python3 xlsx2md.py "\$FILE" > "\${OUTPUT_FILE_NAME}"
+  OUTPUT_FILE_DIRNAME="\${OUTPUT_DIR}\${DIRNAME}"
+  python3 xlsx2md.py "\$FILE" "\${OUTPUT_FILE_DIRNAME}"
   IMAGES=\$(find "\${DIRNAMEPREFIX}" -iname *.png)
   for IMAGE in \$IMAGES
   do
-    echo Copying image file "\$IMAGE" into "\${OUTPUT_DIR}/\${DIRNAME}"
-    cp "\$IMAGE" "\${OUTPUT_DIR}/\${DIRNAME}"
+    echo Copying image file "\$IMAGE" into "\${OUTPUT_FILE_DIRNAME}"
+    cp "\$IMAGE" "\${OUTPUT_FILE_DIRNAME}"
   done
 EOM
 )
