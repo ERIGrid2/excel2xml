@@ -124,16 +124,21 @@ def extract_table(start_cell : Cell, object):
     if len(table_columns) > 0:
         object['table'] = table_columns
 
-def escape_text(text):
+def escape_quotes(text):
     text = str(text)
     text = text.replace('\'', '\\\'')
     return text
+
+def url_safe(text):
+    text = str(text)
+    text = "".join([c for c in text if c.isalpha() or c.isdigit()]).rstrip()
+    return text
         
 def add_header(object, title, link_title, date, description):
-    object['title'] = escape_text(title)
-    object['linkTitle'] = escape_text(link_title)
-    object['date'] = escape_text(date)
-    object['description'] = escape_text(description)
+    object['title'] = escape_quotes(title)
+    object['linkTitle'] = url_safe(link_title)
+    object['date'] = escape_quotes(date)
+    object['description'] = escape_quotes(description)
     return object
 
 def main(filename, output_dir):
