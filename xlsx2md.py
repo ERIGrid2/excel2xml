@@ -126,7 +126,7 @@ def extract_table(start_cell : Cell, object):
 
 def escape_quotes(text):
     text = str(text)
-    text = text.replace('\'', '\\\'')
+    text = text.replace('\'', '\'\'')
     return text
 
 def url_safe(text):
@@ -136,7 +136,7 @@ def url_safe(text):
         
 def add_header(object, title, link_title, date, description):
     object['title'] = escape_quotes(title)
-    object['linkTitle'] = url_safe(link_title)
+    object['linkTitle'] = escape_quotes(link_title)
     object['date'] = escape_quotes(date)
     object['description'] = escape_quotes(description)
     return object
