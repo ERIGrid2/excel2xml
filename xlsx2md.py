@@ -123,7 +123,18 @@ def extract_table(start_cell : Cell, object):
 
     if len(table_columns) > 0:
         object['table'] = table_columns
+
+def escape_text(text):
+    text = str(text)
+    text = text.replace('\'', '\\\'')
+    return text
         
+def add_header(object, title, link_title, date, description):
+    object['title'] = escape_text(title)
+    object['linkTitle'] = escape_text(link_title)
+    object['date'] = escape_text(date)
+    object['description'] = escape_text(description)
+    return object
 
 def main(filename, output_dir):
     try:
@@ -153,10 +164,7 @@ def main(filename, output_dir):
     if test_case:
         mtime = date.fromtimestamp(os.path.getmtime(filename)).isoformat()
         test_case_filename = os.path.splitext(os.path.basename(filename))[0]
-        test_case['title'] = 'Test Case ' + test_case_filename
-        test_case['linkTitle'] = test_case_filename
-        test_case['date'] = mtime
-        test_case['description'] = test_case['name']
+        add_header(test_case, 'Test Case ' + test_case_filename, test_case_filename, mtime, test_case['name'])
         with open('TestCase.mustache', 'r') as template:
             md_test_case = chevron.render(template=template, data=test_case)
             output_files.append({
@@ -166,10 +174,7 @@ def main(filename, output_dir):
             # print(md_test_case)
     
         for ts in test_specifications:
-            ts['title'] = 'Test Specification ' + ts['id']
-            ts['linkTitle'] = ts['id']
-            ts['date'] = mtime
-            ts['description'] = ts['name']
+            add_header(ts, 'Test Specification ' + ts['id'], ts['id'], mtime, ts['name'])
             with open('TestSpecification.mustache', 'r') as template:
                 md_test_spec = chevron.render(template=template, data=ts)
                 output_files.append({
@@ -178,11 +183,7 @@ def main(filename, output_dir):
                 })
 
         for es in experiment_specifications:
-            es['title'] = 'Experiment Specification ' + es['id']
-            es['linkTitle'] = es['id']
-            es['date'] = mtime
-            es['description'] = es['name']
-
+            add_header(es, 'Experiment Specification ' + es['id'], es['id'], mtime, es['name'])
             parent_path = None
             for ts in test_specifications:
                 if ts['id'] == es['parent_reference']:
