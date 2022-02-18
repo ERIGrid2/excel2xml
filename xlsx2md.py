@@ -3,7 +3,6 @@
 from datetime import date
 import os
 import sys
-from tkinter.messagebox import NO
 import chevron
 from openpyxl import load_workbook
 from openpyxl.cell.cell import Cell
