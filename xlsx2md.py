@@ -24,7 +24,7 @@ def extract_test_specification(sheet_ranges):
         return None
     test_specification['parent_reference'] = sheet_ranges['C3'].value
     test_specification['name'] = sheet_ranges['C4'].value
-    extract_generic_data(sheet_ranges, test_specification, start_row=6)
+    extract_generic_data(sheet_ranges, test_specification, start_row=6, diagram_root_path='..')
     return test_specification
 
 
@@ -35,16 +35,16 @@ def extract_experiment_specification(sheet_ranges):
         return None
     exp_spec['parent_reference'] = sheet_ranges['C3'].value
     exp_spec['name'] = sheet_ranges['C4'].value
-    extract_generic_data(sheet_ranges, exp_spec, start_row=6)
+    extract_generic_data(sheet_ranges, exp_spec, start_row=6, diagram_root_path=os.path.join('..', '..'))
     return exp_spec
 
 
-def extract_generic_data(sheet_ranges : Worksheet, object, start_row=1, end_row=None):
+def extract_generic_data(sheet_ranges : Worksheet, object, start_row=1, end_row=None, diagram_root_path='.'):
     if not 'subsections' in object:
         object['subsections'] = []
 
     for row_idx in range(start_row, 1000):
-        if sheet_ranges['A' + str(row_idx)].value == 'Diagrams':
+        if str(sheet_ranges['A' + str(row_idx)].value).lower() == 'diagrams':
             break
         
         headline_cell = sheet_ranges['B' + str(row_idx)]
@@ -58,10 +58,10 @@ def extract_generic_data(sheet_ranges : Worksheet, object, start_row=1, end_row=
                 continue
             else:
                 section['contents'] = get_cell_right(headline_cell).value
-        elif headline_cell.value == 'Description':
+        elif str(headline_cell.value).lower() == 'description':
             section['contents'] = get_cell_right(headline_cell).value
-        elif headline_cell.value == 'Diagram reference':
-            section['diagrams'] = extract_diagrams(sheet_ranges, get_cell_right(headline_cell).value)
+        elif str(headline_cell.value).lower() == 'diagram reference':
+            section['diagrams'] = extract_diagrams(sheet_ranges, get_cell_right(headline_cell).value, diagram_root_path=diagram_root_path)
         elif headline_cell.value:
             subsection = {
                 'section_title': headline_cell.value,
@@ -71,7 +71,7 @@ def extract_generic_data(sheet_ranges : Worksheet, object, start_row=1, end_row=
 
     return object
 
-def extract_diagrams(sheet : Worksheet, diagram_reference):
+def extract_diagrams(sheet : Worksheet, diagram_reference, diagram_root_path='.'):
     return_list = []
 
     if not diagram_reference:
@@ -80,7 +80,7 @@ def extract_diagrams(sheet : Worksheet, diagram_reference):
     diagram_references = [x.strip() for x in diagram_reference.split(';')]
 
     for i in range(1, 1000):
-        if sheet['A' + str(i)].value == 'Diagrams':
+        if str(sheet['A' + str(i)].value).lower().strip() == 'diagrams':
             diagram_id_row = i + 1
 
     for dia_ref in diagram_references:
@@ -90,7 +90,7 @@ def extract_diagrams(sheet : Worksheet, diagram_reference):
                 return_list.append(
                     {
                         'diagram_name': sheet.cell(row=diagram_id_row+1, column=col).value,
-                        'diagram_uri': sheet.cell(row=diagram_id_row+3, column=col).value
+                        'diagram_uri': os.path.join(diagram_root_path, sheet.cell(row=diagram_id_row+3, column=col).value)
                     })
                 break
             col += 1
@@ -164,7 +164,7 @@ def main(filename, output_dir):
     test_specifications = [ts for ts in test_specifications if ts is not None]
     experiment_specifications = [es for es in experiment_specifications if es is not None]
 
-    output_files = []
+    output_files = {}
 
     if test_case:
         mtime = date.fromtimestamp(os.path.getmtime(filename)).isoformat()
@@ -172,39 +172,42 @@ def main(filename, output_dir):
         add_header(test_case, 'Test Case ' + test_case_filename, test_case_filename, mtime, test_case['name'])
         with open('TestCase.mustache', 'r') as template:
             md_test_case = chevron.render(template=template, data=test_case)
-            output_files.append({
-                'path': os.path.join('.', 'index.md'), 
+            index_name = 'index.md' if len(test_specifications) == 0 else '_index.md'
+            output_files['root'] = {
+                'dir_path': os.path.join('.'), 
+                'filename': index_name,
                 'content': md_test_case
-            })
+            }
             # print(md_test_case)
     
         for ts in test_specifications:
             add_header(ts, 'Test Specification ' + ts['id'], ts['id'], mtime, ts['name'])
             with open('TestSpecification.mustache', 'r') as template:
                 md_test_spec = chevron.render(template=template, data=ts)
-                output_files.append({
-                    'path': os.path.join('.', ts['id'], 'index.md'), 
+                output_files[ts['id']] = {
+                    'dir_path': os.path.join('.', ts['id']),
+                    'filename': 'index.md', 
                     'content': md_test_spec
-                })
+                }
 
         for es in experiment_specifications:
             add_header(es, 'Experiment Specification ' + es['id'], es['id'], mtime, es['name'])
             parent_path = None
-            for ts in test_specifications:
-                if ts['id'] == es['parent_reference']:
-                    parent_path = ts['id']
-                    break
+            if es['parent_reference'] in output_files:
+                parent_path = es['parent_reference']
+                output_files[es['parent_reference']]['filename'] = '_index.md'
 
             if parent_path:
                 with open('ExperimentSpecification.mustache', 'r') as template:
                     md_exp_spec = chevron.render(template=template, data=es)
-                    output_files.append({
-                        'path': os.path.join('.', parent_path, es['id'], 'index.md'), 
+                    output_files[es['id']] = {
+                        'dir_path': os.path.join('.', parent_path, es['id']),
+                        'filename': 'index.md', 
                         'content': md_exp_spec
-                    })
+                    }
 
-    for of in output_files:
-        file_path = os.path.join(output_dir, of['path'])
+    for of in output_files.values():
+        file_path = os.path.join(output_dir, of['dir_path'], of['filename'])
         print('Creating file ' + file_path)
         if not os.path.exists(os.path.dirname(file_path)):
             os.makedirs(os.path.dirname(file_path))
